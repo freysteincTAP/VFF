@@ -18,7 +18,7 @@ DATA_CONFIG:
               IMG_ROOT_PATH: training/image_2
 
               
-              USE_ROAD_PLANE: True
+              USE_ROAD_PLANE: False
               DB_INFO_PATH:
                   - kitti_dbinfos_train.pkl
               PREPARE: {

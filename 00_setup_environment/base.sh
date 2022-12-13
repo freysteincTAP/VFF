@@ -15,12 +15,15 @@ container_dir=$HOME
 host_dir_synthetic_data=$HOME/Synthetic_Datasets
 container_dir_synthetic_data=$HOME/Synthetic_Datasets
 
+host_dir_data=$HOME/Repos/3D-Object-Detection-Models/VFF/data
+container_dir_data=$HOME/Repos/3D-Object-Detection-Models/VFF/data
+
 
 
 
 function run_docker_image_as_root () {
     name_suffix=$1
-    docker run -ti --shm-size=2gb --gpus all --name "$base_name_docker_image_$version$name_suffix" -v $host_dir:$container_dir -v $host_dir_synthetic_data:$container_dir_synthetic_data $full_name_docker_image /bin/bash
+    docker run -ti --shm-size=2gb --gpus all --name "$base_name_docker_image_$version$name_suffix" -v $host_dir:$container_dir -v $host_dir_synthetic_data:$container_dir_synthetic_data -v $host_dir_data:$container_dir_data $full_name_docker_image /bin/bash
     docker stop "$base_name_docker_image_$version$name_suffix"
     docker rm "$base_name_docker_image_$version$name_suffix"
 }

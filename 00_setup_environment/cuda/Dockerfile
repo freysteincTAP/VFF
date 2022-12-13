@@ -3,6 +3,7 @@ FROM nvidia/cuda:11.3.0-cudnn8-devel-ubuntu18.04 AS base
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 # Install basics
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
 RUN apt-get update -y \
     && apt-get install build-essential \
     && apt-get install -y apt-utils git curl ca-certificates bzip2 tree htop wget \
@@ -39,7 +40,7 @@ RUN pip3 install numpy==1.20 #to solve numpy dependency issues with opencv!
 
 # Install python packages
 RUN PIP_INSTALL="python -m pip --no-cache-dir install" && \
-    $PIP_INSTALL tensorboardX easydict pyyaml scikit-image tqdm SharedArray six kornia
+    $PIP_INSTALL tensorboardX easydict pyyaml scikit-image tqdm SharedArray six kornia psutil scipy pillow vtk mayavi
 
 WORKDIR /root
 

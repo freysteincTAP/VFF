@@ -1,6 +1,7 @@
 from functools import partial
 
 import numpy as np
+import torch
 from skimage import transform
 
 from ...utils import box_utils, common_utils
@@ -44,7 +45,7 @@ class DataProcessor(object):
 
         return data_dict
 
-    def transform_points_to_voxels(self, data_dict=None, config=None, voxel_generator=None):
+    def transform_points_to_voxels_old(self, data_dict=None, config=None, voxel_generator=None):
         if data_dict is None:
             from spconv.pytorch.utils import PointToVoxel as VoxelGenerator
 
@@ -54,13 +55,13 @@ class DataProcessor(object):
                 num_point_features=config.NUM_POINT_FEATURES,
                 max_num_points_per_voxel=config.MAX_POINTS_PER_VOXEL,
                 max_num_voxels=config.MAX_NUMBER_OF_VOXELS[self.mode]
-
             )
+
             grid_size = (self.point_cloud_range[3:6] - self.point_cloud_range[0:3]) / np.array(config.VOXEL_SIZE)
             self.grid_size = np.round(grid_size).astype(np.int64)
             self.voxel_size = config.VOXEL_SIZE
             return partial(self.transform_points_to_voxels, voxel_generator=voxel_generator, config=config)
-
+	
         points = data_dict['points']
 
         # use point->image index
@@ -83,6 +84,47 @@ class DataProcessor(object):
         data_dict['voxel_coords'] = coordinates
         data_dict['voxel_num_points'] = num_points
         return data_dict
+
+    def transform_points_to_voxels(self, data_dict=None, config=None, voxel_generator=None):
+        if data_dict is None:
+            from spconv.pytorch.utils import PointToVoxel as VoxelGenerator
+
+            voxel_generator = VoxelGenerator(
+                vsize_xyz=config.VOXEL_SIZE,
+                coors_range_xyz=self.point_cloud_range,
+                num_point_features=config.NUM_POINT_FEATURES,
+                max_num_points_per_voxel=config.MAX_POINTS_PER_VOXEL,
+                max_num_voxels=config.MAX_NUMBER_OF_VOXELS[self.mode],
+            )
+
+            grid_size = (self.point_cloud_range[3:6] - self.point_cloud_range[0:3]) / np.array(config.VOXEL_SIZE)
+            self.grid_size = np.round(grid_size).astype(np.int64)
+            self.voxel_size = config.VOXEL_SIZE
+            return partial(self.transform_points_to_voxels, voxel_generator=voxel_generator, config=config)
+	
+        points = data_dict['points']
+        device = torch.device("cpu:0")
+        pts = torch.from_numpy(points).to(device=device)
+
+        # use point->image index
+        use_index = config.get('USE_INDEX', False)
+        # voxel_output = voxel_generator.generate(points)
+        voxels, coords, num_points = voxel_generator(pts)
+
+        if not data_dict['use_lead_xyz']:
+            voxels = voxels[..., 3:]  # remove xyz in voxels(N, 3)
+        
+        if use_index:
+            data_dict["point2img"] = voxels[...,-1]
+            voxels = voxels[...,:-1] # pop point->image in voxels (N, N', -1)
+
+        data_dict['voxels'] = voxels
+        data_dict['voxel_coords'] = coords
+        data_dict['voxel_num_points'] = num_points
+        return data_dict
+
+
+
 
     def sample_points(self, data_dict=None, config=None):
         if data_dict is None:
